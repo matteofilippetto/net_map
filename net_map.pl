@@ -14,6 +14,7 @@ use warnings;
 use strict;
 use Getopt::Std;
 use Cwd;
+use File::Fetch;
 
 #############
 # VARIABLES #
@@ -27,6 +28,10 @@ my $format = '';			# format for export file
 my $timeout = 1;			# timeout for ping
 my $device = "eth0";		# device to use. eth0 as default
 my $export_filename = "";	# file name for csv export
+my $key = '';					# for input parameters
+my $value;					# for input parameters
+
+getopt('n:c:r:e:t:i:u:h:', \%opts);   
 
 # options
 #	-n <net>		# select network
@@ -35,11 +40,13 @@ my $export_filename = "";	# file name for csv export
 #	-e <format>		# select format for export (only csv at the moment)
 #	-t <seconds>	# select timeout for ping command
 #	-i <device>		# select device to use
+#	-u				# update oui.txt from standards.ieee.org
+#	-h				# display usage
 
-getopt('n:c:r:e:t:i:u:', \%opts);   
+printf("%s", $key);
 
 # parse options and set relevant vars
-while ( my ($key, $value) = each(%opts) ) {
+while (($key, $value) = each(%opts) ) {
 	if ('n' eq $key) {
 		if($value ne '') {
 			$net = $value;
@@ -101,8 +108,12 @@ while ( my ($key, $value) = each(%opts) ) {
 # MAIN PROGRAM #
 ################
 
+printf("%s", $key);
+
 # load oui.txt into cache
-Net::MAC::Vendor::load_cache("file://" . cwd . "/oui.txt");
+if ('u' ne $key) {
+	Net::MAC::Vendor::load_cache("file://" . cwd . "/oui.txt");
+}
 
 if($net ne '') {
 	
@@ -286,17 +297,22 @@ sub list_ips {
 
 sub update_oui {
 	
-	
+	my $oui_link = File::Fetch->new(uri => 'http://standards.ieee.org/develop/regauth/oui/oui.txt');
+	my $oui_file = $oui_link->fetch() or die $oui_link->error;
+	exit();
 	
 }
 
 sub usage {
+	
 	print("./net_map.pl");
 	print("\n -i: device to use. Example: eth1");
 	print("\n -n: network. Example: -n 192.168.10.0. Implicit subnet /24");
 	print("\n -c: notazione cidr. Example: -c 192.168.23.0/16");
 	print("\n -r: range di ip. Example: -r 192.168.1.23-29");
 	print("\n -e: export (only CSV). Example: -e csv");
+	print("\n -u: update oui.txt from ieee.org");
 	print("\n");
 	exit();
+	
 }
