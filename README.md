@@ -1,4 +1,6 @@
-net_map
+net_map.pl
 =======
 
-script for mapping a network
+net_map.pl is a perl script for mapping a network. It returns status, rtt, mac address and vendor. 
+
+You can also export results in csv format.
