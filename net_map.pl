@@ -28,10 +28,10 @@ my $format = '';			# format for export file
 my $timeout = 1;			# timeout for ping
 my $device = "eth0";		# device to use. eth0 as default
 my $export_filename = "";	# file name for csv export
-my $key = '';					# for input parameters
-my $value;					# for input parameters
+my $updating = 0;			# updating ?
+my $filename = 'oui.txt';	# file containing mac address and vendors
 
-getopt('n:c:r:e:t:i:u:h:', \%opts);   
+getopt('n:c:r:e:t:i:uh', \%opts);   
 
 # options
 #	-n <net>		# select network
@@ -43,10 +43,8 @@ getopt('n:c:r:e:t:i:u:h:', \%opts);
 #	-u				# update oui.txt from standards.ieee.org
 #	-h				# display usage
 
-printf("%s", $key);
-
 # parse options and set relevant vars
-while (($key, $value) = each(%opts) ) {
+while (my($key, $value) = each(%opts) ) {
 	if ('n' eq $key) {
 		if($value ne '') {
 			$net = $value;
@@ -100,7 +98,12 @@ while (($key, $value) = each(%opts) ) {
 	}
     
 	if ('u' eq $key) {
+		$updating = 1;
 		&update_oui;
+	}
+	
+	if ('h' eq $key) {
+		&usage;
 	}
 }
 
@@ -108,11 +111,11 @@ while (($key, $value) = each(%opts) ) {
 # MAIN PROGRAM #
 ################
 
-printf("%s", $key);
-
 # load oui.txt into cache
-if ('u' ne $key) {
-	Net::MAC::Vendor::load_cache("file://" . cwd . "/oui.txt");
+if ($updating == 0) {
+	if (-e $filename) {
+		Net::MAC::Vendor::load_cache("file://" . cwd . "/" . $filename);
+	}
 }
 
 if($net ne '') {
@@ -312,6 +315,7 @@ sub usage {
 	print("\n -r: range di ip. Example: -r 192.168.1.23-29");
 	print("\n -e: export (only CSV). Example: -e csv");
 	print("\n -u: update oui.txt from ieee.org");
+	print("\n -h: show usage");
 	print("\n");
 	exit();
 	
