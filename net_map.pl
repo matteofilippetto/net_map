@@ -1,20 +1,31 @@
 #!/usr/bin/perl
 
+
+## TO-DO
+# verificare se ip da scansionare è locale o no
+
 #################
 # MODULE IMPORT #
 #################
 
 use 5.010;
+use warnings;
+use strict;
+use Getopt::Std;
+
+use Cwd;
+use File::Fetch;
+
+use Socket;
+
 use Net::Ping;
 use Net::ARP;
 use Net::Netmask;
 use Net::NBName;
 use Net::MAC::Vendor;
-use warnings;
-use strict;
-use Getopt::Std;
-use Cwd;
-use File::Fetch;
+use Net::Subnet;
+
+use IO::Interface::Simple;
 
 #############
 # VARIABLES #
@@ -118,6 +129,8 @@ if ($updating == 0) {
 	}
 }
 
+# determine if requested network / address is / are local 
+
 if($net ne '') {
 	
 	my $ip;
@@ -212,15 +225,24 @@ sub verify_ip_screen {
 	($status, $duration, $rip) = $po->ping($_[0], $_[1]);
 	
 	if($status) {
-	
-		$mac_address = Net::ARP::arp_lookup($_[2],$_[0]);
+		# if address is not local don't ask mac address
+		if(&address_is_local($_[2], $_[0]) == 1) {
+			$mac_address = Net::ARP::arp_lookup($_[2],$_[0]);
+		} else {
+			$mac_address = "N/A";
+		}
+		
+		my $hostname = "";
+		$hostname = gethostbyaddr(inet_aton($rip), AF_INET) or $hostname = "hostname not available";
 		
 		if($mac_address ne '') {
 			printf("ip $rip is alive (return time: %.2f ms). MAC: $mac_address. Vendor: %s\n", 1000 * $duration, &get_vendor_name($mac_address));
 		}
-		else {
+		if($mac_address eq '') {
 			printf("ip $rip is alive (return time: %.2f ms). MAC: N/A \n", 1000 * $duration);
 		}
+		
+		printf("%s\n", $hostname);
 		
 	} else {
 		printf("ip $rip is NOT alive\n");
@@ -251,8 +273,13 @@ sub verify_ip_to_csv {
 	
 	if($status) {  
 		$alive++;
-		$mac_address = Net::ARP::arp_lookup($_[2],$_[0]);
-
+		# if address is not local don't ask mac address
+		if(&address_is_local($_[2], $_[0]) == 1) {
+			$mac_address = Net::ARP::arp_lookup($_[2],$_[0]);
+		} else {
+			$mac_address = "N/A";
+		}
+		
 		if($mac_address ne '') {
 			printf LOG ("$rip;alive;$mac_address;%.2f;%s;\n", 1000 * $duration, &get_vendor_name($mac_address));
 		}
@@ -299,15 +326,25 @@ sub list_ips {
 }
 
 sub update_oui {
-	
 	my $oui_link = File::Fetch->new(uri => 'http://standards.ieee.org/develop/regauth/oui/oui.txt');
 	my $oui_file = $oui_link->fetch() or die $oui_link->error;
-	exit();
+	exit();	
+}
+
+sub address_is_local {
+	my $if = IO::Interface::Simple->new($_[0]);
+	my $is_local;
 	
+	if($if->is_running && !$if->is_loopback) {
+		my $block = new Net::Netmask($if->address, $if->netmask);
+		#print "check: " . $_[1] . " - " . $if->address . "\n";
+		$is_local = $block->match($_[1]);
+	}
+	
+	$is_local;
 }
 
 sub usage {
-	
 	print("./net_map.pl");
 	print("\n -i: device to use. Example: eth1");
 	print("\n -n: network. Example: -n 192.168.10.0. Implicit subnet /24");
@@ -318,5 +355,4 @@ sub usage {
 	print("\n -h: show usage");
 	print("\n");
 	exit();
-	
 }
