@@ -226,7 +226,7 @@ sub verify_ip_screen {
 	
 	if($status) {
 		# if address is not local don't ask mac address
-		if(&address_is_local($_[2], $_[0]) == 1) {
+		if(&address_is_local($_[2], $_[0])) {
 			$mac_address = Net::ARP::arp_lookup($_[2],$_[0]);
 		} else {
 			$mac_address = "N/A";
@@ -274,7 +274,7 @@ sub verify_ip_to_csv {
 	if($status) {  
 		$alive++;
 		# if address is not local don't ask mac address
-		if(&address_is_local($_[2], $_[0]) == 1) {
+		if(&address_is_local($_[2], $_[0])) {
 			$mac_address = Net::ARP::arp_lookup($_[2],$_[0]);
 		} else {
 			$mac_address = "N/A";
@@ -337,12 +337,9 @@ sub address_is_local {
 
 	if($if->is_running && !$if->is_loopback) {
 		my $block = new Net::Netmask($if->address, $if->netmask);
-		#print "check: " . $_[1] . " - " . $if->address . "\n";
 		$is_local = $block->match($_[1]);
 	}
 
-	printf("%s - %s", $_[0], $if->address);
-	
 	$is_local;
 }
 
