@@ -334,12 +334,14 @@ sub update_oui {
 sub address_is_local {
 	my $if = IO::Interface::Simple->new($_[0]);
 	my $is_local;
-	
+
 	if($if->is_running && !$if->is_loopback) {
 		my $block = new Net::Netmask($if->address, $if->netmask);
 		#print "check: " . $_[1] . " - " . $if->address . "\n";
 		$is_local = $block->match($_[1]);
 	}
+
+	printf("%s - %s", $_[0], $if->address);
 	
 	$is_local;
 }
